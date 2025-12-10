@@ -1,0 +1,49 @@
+version: '3.8'
+
+# Local development docker-compose file
+# Uses .env file for configuration
+# Run with: docker-compose -f docker-compose.local.yml up
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: fileanalyzer-db-local
+    env_file:
+      - .env
+    environment:
+      POSTGRES_DB: ${DB_NAME:-fileanalyzer}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fileanalyzer-backend-local
+    env_file:
+      - .env
+    environment:
+      DB_HOST: postgres
+    ports:
+      - "${PORT:-3001}:${PORT:-3001}"
+    volumes:
+      - ./uploads:/app/uploads
+      - ./src:/app/src
+      - /app/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: npm run dev
+
+volumes:
+  postgres_data:
+

@@ -1,0 +1,54 @@
+version: '3.8'
+
+# Docker Compose configuration
+# Uses .env file for environment variables
+# Make sure .env file exists before running
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: fileanalyzer-db
+    env_file:
+      - .env
+    environment:
+      POSTGRES_DB: ${DB_NAME:-fileanalyzer}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    # Remove old incompatible data on startup (only if needed)
+    # Uncomment the line below if you want to reset the database
+    # command: postgres -c fsync=off
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fileanalyzer-backend
+    env_file:
+      - .env
+    environment:
+      DB_HOST: postgres
+    ports:
+      - "${PORT:-3001}:${PORT:-3001}"
+    volumes:
+      - ./uploads:/app/uploads
+      - ./src:/app/src
+      - /app/node_modules
+      - /app/dist
+    depends_on:
+      postgres:
+        condition: service_healthy
+    # Install dev dependencies and run dev server
+    command: sh -c "npm install && npm run dev"
+
+volumes:
+  postgres_data:
+
