@@ -55,6 +55,15 @@ jobs:
           sed -i "s/REGION/${{ env.AWS_REGION }}/g" task-definition.json
           sed -i "s/ACCOUNT_ID/${{ steps.get-account-id.outputs.account_id }}/g" task-definition.json
 
+      - name: Verify container name in task definition
+        run: |
+          CONTAINER_NAME=$(cat task-definition.json | grep -o '"name": "[^"]*"' | head -1 | cut -d'"' -f4)
+          echo "Container name in task definition: $CONTAINER_NAME"
+          if [ "$CONTAINER_NAME" != "backend" ]; then
+            echo "Error: Container name mismatch. Expected 'backend' but found '$CONTAINER_NAME'"
+            exit 1
+          fi
+
       - name: Fill in the new image ID in the Amazon ECS task definition
         id: task-def
         uses: aws-actions/amazon-ecs-render-task-definition@v1
