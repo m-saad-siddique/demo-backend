@@ -1,0 +1,62 @@
+{
+  "family": "backend-task",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "1024",
+  "memory": "2048",
+  "executionRoleArn": "arn:aws:iam::YOUR_ACCOUNT_ID:role/ecsTaskExecutionRole",
+  "taskRoleArn": "arn:aws:iam::YOUR_ACCOUNT_ID:role/backendTaskRole",
+  "containerDefinitions": [
+    {
+      "name": "backend",
+      "image": "YOUR_ECR_URI:latest",
+      "portMappings": [
+        {
+          "containerPort": 3001,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        {
+          "name": "PORT",
+          "value": "3001"
+        }
+      ],
+      "secrets": [
+        {
+          "name": "DB_HOST",
+          "valueFrom": "arn:aws:ssm:REGION:ACCOUNT_ID:parameter/ecs/backend/DB_HOST"
+        },
+        {
+          "name": "DB_PORT",
+          "valueFrom": "arn:aws:ssm:REGION:ACCOUNT_ID:parameter/ecs/backend/DB_PORT"
+        },
+        {
+          "name": "DB_NAME",
+          "valueFrom": "arn:aws:ssm:REGION:ACCOUNT_ID:parameter/ecs/backend/DB_NAME"
+        },
+        {
+          "name": "DB_USER",
+          "valueFrom": "arn:aws:ssm:REGION:ACCOUNT_ID:parameter/ecs/backend/DB_USER"
+        },
+        {
+          "name": "DB_PASSWORD",
+          "valueFrom": "arn:aws:ssm:REGION:ACCOUNT_ID:parameter/ecs/backend/DB_PASSWORD"
+        },
+        {
+          "name": "FRONTEND_URL",
+          "valueFrom": "arn:aws:ssm:REGION:ACCOUNT_ID:parameter/ecs/backend/FRONTEND_URL"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/backend",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      }
+    }
+  ]
+}
+
