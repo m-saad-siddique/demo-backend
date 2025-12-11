@@ -29,6 +29,12 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
+      - name: Get AWS Account ID
+        id: get-account-id
+        run: |
+          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          echo "account_id=$ACCOUNT_ID" >> $GITHUB_OUTPUT
+
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
@@ -42,6 +48,12 @@ jobs:
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+      - name: Replace placeholders in task definition
+        run: |
+          sed -i "s/YOUR_ACCOUNT_ID/${{ steps.get-account-id.outputs.account_id }}/g" task-definition.json
+          sed -i "s/REGION/${{ env.AWS_REGION }}/g" task-definition.json
+          sed -i "s/ACCOUNT_ID/${{ steps.get-account-id.outputs.account_id }}/g" task-definition.json
 
       - name: Fill in the new image ID in the Amazon ECS task definition
         id: task-def
