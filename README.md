@@ -37,6 +37,8 @@ The backend will be available at `http://localhost:3001`
 ## Environment
 
 Create `.env` file in the root directory:
+
+### For Local Development (Docker Compose)
 ```env
 PORT=3001
 DB_HOST=postgres
@@ -47,7 +49,193 @@ DB_PASSWORD=postgres
 FRONTEND_URL=http://localhost:3000
 ```
 
-**Note:** When using Docker Compose, `DB_HOST` should be `postgres` (the service name). For local development without Docker, use `localhost`.
+### For Local Development (Without Docker)
+```env
+PORT=3001
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=fileanalyzer
+DB_USER=postgres
+DB_PASSWORD=postgres
+FRONTEND_URL=http://localhost:3000
+```
+
+### For AWS RDS Connection
+```env
+PORT=3001
+DB_HOST=your-rds-endpoint.region.rds.amazonaws.com
+DB_PORT=5432
+DB_NAME=fileanalyzer
+DB_USER=your_db_username
+DB_PASSWORD=your_db_password
+FRONTEND_URL=https://your-alb-url.com
+
+# Optional: SSL Configuration for RDS
+DB_SSL=true
+DB_SSL_REJECT_UNAUTHORIZED=false
+
+# Optional: Connection Pool Settings
+DB_POOL_MAX=20
+DB_POOL_IDLE_TIMEOUT=30000
+DB_CONNECTION_TIMEOUT=2000
+```
+
+**Notes:**
+- When using Docker Compose, `DB_HOST` should be `postgres` (the service name)
+- For local development without Docker, use `localhost`
+- For RDS, use the RDS endpoint from AWS Console (RDS → Databases → Your DB → Connectivity & security)
+- RDS endpoint format: `your-db-instance.xxxxxxxxxx.region.rds.amazonaws.com`
+
+## Connecting to AWS RDS Database
+
+### Prerequisites
+- AWS RDS PostgreSQL instance created
+- Security group configured to allow connections from your ECS tasks or local IP
+- Database credentials (username and password)
+
+### Step 1: Get RDS Endpoint
+
+1. Go to AWS Console → RDS → Databases
+2. Select your database instance
+3. Under **Connectivity & security**, copy the **Endpoint** (e.g., `mydb.xxxxxxxxxx.us-east-1.rds.amazonaws.com`)
+4. Note the **Port** (default is `5432` for PostgreSQL)
+
+### Step 2: Configure Security Group
+
+Ensure your RDS security group allows inbound connections:
+
+1. Go to RDS → Databases → Your DB → Connectivity & security
+2. Click on the **VPC security group**
+3. Add inbound rule:
+   - **Type:** PostgreSQL
+   - **Port:** 5432
+   - **Source:** 
+     - For ECS: Select the ECS security group
+     - For local testing: Your public IP address (`x.x.x.x/32`)
+
+### Step 3: Update Environment Variables
+
+#### For ECS Task Definition (Production)
+
+In your ECS task definition, set environment variables or use AWS Secrets Manager:
+
+**Option 1: Environment Variables (Not Recommended for Production)**
+```json
+{
+  "name": "DB_HOST",
+  "value": "your-rds-endpoint.region.rds.amazonaws.com"
+},
+{
+  "name": "DB_PORT",
+  "value": "5432"
+},
+{
+  "name": "DB_NAME",
+  "value": "fileanalyzer"
+},
+{
+  "name": "DB_USER",
+  "value": "your_db_username"
+},
+{
+  "name": "DB_PASSWORD",
+  "value": "your_db_password"
+}
+```
+
+**Option 2: AWS Secrets Manager (Recommended)**
+
+1. Store database credentials in Secrets Manager:
+   ```json
+   {
+     "host": "your-rds-endpoint.region.rds.amazonaws.com",
+     "port": "5432",
+     "dbname": "fileanalyzer",
+     "username": "your_db_username",
+     "password": "your_db_password"
+   }
+   ```
+
+2. Reference in ECS task definition:
+   ```json
+   {
+     "name": "DB_HOST",
+     "valueFrom": "arn:aws:secretsmanager:region:account-id:secret:rds-credentials:host::"
+   },
+   {
+     "name": "DB_PORT",
+     "valueFrom": "arn:aws:secretsmanager:region:account-id:secret:rds-credentials:port::"
+   },
+   {
+     "name": "DB_NAME",
+     "valueFrom": "arn:aws:secretsmanager:region:account-id:secret:rds-credentials:dbname::"
+   },
+   {
+     "name": "DB_USER",
+     "valueFrom": "arn:aws:secretsmanager:region:account-id:secret:rds-credentials:username::"
+   },
+   {
+     "name": "DB_PASSWORD",
+     "valueFrom": "arn:aws:secretsmanager:region:account-id:secret:rds-credentials:password::"
+   }
+   ```
+
+#### For Local Testing
+
+Update your `.env` file:
+```env
+DB_HOST=your-rds-endpoint.region.rds.amazonaws.com
+DB_PORT=5432
+DB_NAME=fileanalyzer
+DB_USER=your_db_username
+DB_PASSWORD=your_db_password
+```
+
+### Step 4: Test Connection
+
+```bash
+# Test connection locally
+npm run dev
+
+# Or with Docker
+docker-compose up -d
+docker-compose logs -f backend
+```
+
+You should see: `✅ Database connected successfully`
+
+### SSL/TLS Connection (Optional)
+
+The database connection already supports SSL configuration. To enable SSL for RDS:
+
+1. Add to your `.env` file:
+```env
+DB_SSL=true
+DB_SSL_REJECT_UNAUTHORIZED=false
+```
+
+2. For production with proper certificate validation:
+   - Download the RDS CA certificate bundle from AWS
+   - Set `DB_SSL_REJECT_UNAUTHORIZED=true` (requires proper CA certificate setup)
+
+**Note:** The connection code automatically handles SSL when `DB_SSL=true` is set. No code changes needed.
+
+### Troubleshooting
+
+**Connection timeout:**
+- Check security group rules allow inbound traffic from your source
+- Verify RDS is in the same VPC as your ECS tasks
+- Check route tables and network ACLs
+
+**Authentication failed:**
+- Verify username and password are correct
+- Check database name exists
+- Ensure user has proper permissions
+
+**Connection refused:**
+- Verify RDS endpoint is correct
+- Check port number (default 5432)
+- Ensure RDS instance is available (not stopped)
 
 ## API Endpoints
 

@@ -1,15 +1,32 @@
-import { Pool } from 'pg';
+import { Pool, PoolConfig } from 'pg';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
-export const pool = new Pool({
+// Configure SSL for RDS if needed
+const getSSLConfig = () => {
+  if (process.env.DB_SSL === 'true') {
+    return {
+      rejectUnauthorized: process.env.DB_SSL_REJECT_UNAUTHORIZED !== 'false',
+    };
+  }
+  return false;
+};
+
+const poolConfig: PoolConfig = {
   host: process.env.DB_HOST || 'localhost',
   port: parseInt(process.env.DB_PORT || '5432'),
   database: process.env.DB_NAME || 'fileanalyzer',
   user: process.env.DB_USER || 'postgres',
   password: process.env.DB_PASSWORD || 'postgres',
-});
+  ssl: getSSLConfig(),
+  // Connection pool settings
+  max: parseInt(process.env.DB_POOL_MAX || '20'),
+  idleTimeoutMillis: parseInt(process.env.DB_POOL_IDLE_TIMEOUT || '30000'),
+  connectionTimeoutMillis: parseInt(process.env.DB_CONNECTION_TIMEOUT || '2000'),
+};
+
+export const pool = new Pool(poolConfig);
 
 export async function initializeDatabase(): Promise<void> {
   try {
