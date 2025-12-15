@@ -9,7 +9,7 @@ on:
 env:
   AWS_REGION: us-east-1
   ECR_REPOSITORY: backend-repo
-  ECS_SERVICE: backend-service
+  ECS_SERVICE: ecs-production-backend-service
   ECS_CLUSTER: ecs-production-cluster
   ECS_TASK_DEFINITION: backend-task
 
