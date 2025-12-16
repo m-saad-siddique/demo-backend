@@ -24,6 +24,10 @@
         {
           "name": "DB_SSL",
           "value": "true"
+        },
+        {
+          "name": "DB_SSL_REJECT_UNAUTHORIZED",
+          "value": "false"
         }
       ],
       "secrets": [
