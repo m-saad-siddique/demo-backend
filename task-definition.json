@@ -9,7 +9,7 @@
   "containerDefinitions": [
     {
       "name": "backend-app",
-      "image": "YOUR_ECR_URI:latest",
+      "image": "ACCOUNT_ID.dkr.ecr.REGION.amazonaws.com/ECR_REPOSITORY:latest",
       "portMappings": [
         {
           "containerPort": 3001,
