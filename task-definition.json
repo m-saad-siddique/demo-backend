@@ -20,6 +20,10 @@
         {
           "name": "PORT",
           "value": "3001"
+        },
+        {
+          "name": "DB_SSL",
+          "value": "true"
         }
       ],
       "secrets": [
@@ -34,10 +38,6 @@
         {
           "name": "DB_NAME",
           "valueFrom": "arn:aws:ssm:REGION:ACCOUNT_ID:parameter/ecs/backend/DB_NAME"
-        },
-        {
-          "name": "DB_SSL",
-          "value": "true"
         },
         {
           "name": "DB_USER",
